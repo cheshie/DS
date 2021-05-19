@@ -7,6 +7,7 @@ from time import sleep
 from lab2 import *
 from sys import stdout
 from os import system
+from sys import argv
 
 class State(Enum):
   CRITICALSTATE = 0x00

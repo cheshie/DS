@@ -218,4 +218,8 @@ class Network:
     
 
 if __name__ == "__main__":
-  net = Network([Node('A'), Node('B'), Node('C')])
+  if len(argv) < 2:
+    print("At least 2 nodes must be passed. Example: \n"
+          "$> python3 lab2.py A B C ")
+  
+  net = Network([Node(str(arg)) for arg in argv])
