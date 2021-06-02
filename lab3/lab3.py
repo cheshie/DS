@@ -17,20 +17,32 @@ class Site:
   #
   def request(self, requestingNode):
     sleep(1)
+
     # If not the root node
     if self.holder:
+      # Special case. If already finished CS, just pass token
+      # mark new descendant as new holder and finish
+      if self.workedInCS:
+        # TODO: Should not add descendant to que? 
+        # descendant = self.pop()
+        # self.holder = descendant
+        self.push(self.holder)
+        self.holder.passToken()
+        return
+
       # If request_q is empty, send request to parent
+      # and if previously not worked in cs
       if not len(self.request_q):
+        System.printState()
         self.push(self)
         self.push(requestingNode)
-        print("Inside request. Sending request => ", self.holder.name)
+        print(f"[{self.name}] Inside request. Sending request => ", self.holder.name)
         # If haven't already worked in CS, request it
-        if not self.workedInCS:
-          self.holder.request(self)
+        self.holder.request(self)
     # If its root node, and work is finished, pass token
     else:
       self.push(requestingNode)
-      print("Waiting for work to finish, then passing token")
+      print(f"[{self.name}]  Waiting for work to finish, then passing token")
       # Wait until token is released
       while System.csTaken:
         sleep(0.25)
@@ -38,6 +50,11 @@ class Site:
       descendant = self.pop()
       self.holder = descendant
       self.holder.passToken()
+      # After token is passed, and other nodes finish their work
+      # make sure that token will be passed again here (to the old root)
+      # so that other nodes could use it as well
+      #self.holder.request(self)
+      self.push(self.holder)
   #
   def pop(self):
     return self.request_q.pop()
@@ -58,6 +75,7 @@ class Site:
         print("Descendant is me - ", descendant.name, " I am new root!")
         System.currentCS = self
         self.workedInCS = True
+        self.holder = None
         System.doCSWork()
         System.done.append(self)
         System.printState()
@@ -72,12 +90,18 @@ class Site:
       # If current node has another descendant in the queue
       # Pass token to first descendant
       else:
-        print("Token passed to NEW descendant => ", descendant.name)
+        print(f"[{self.name}] Token passed to NEW descendant => ", descendant.name)
         # reverse the tree
         self.holder = descendant
+        # before passing the token, add descendant to que 
+        # in order to be able to get token later
+        self.push(descendant)
+        # Pass token to next Node
         descendant.passToken()
+        print(f"Now, after token sent and work done. I [{self.name}] request -> {descendant.name}")
+        System.printState()
         if len(self.request_q):
-          descendant.request(self)
+          self.request_q.pop().request(self)
 #
 
 # A (B(D,E),C(F,G))
@@ -141,10 +165,12 @@ class System:
         if node.workedInCS:
           state = 'Done'
         print(f"[*] Node [{state}][{node.name}] ::=> [{node.holder.name if node.holder else None}] :: Que => {[x.name for x in node.request_q]}")
+      
+      System.newCSCandidate = self.nodes.E
       while True:
         # Started with B. Problem is, when D finishes it's job, it needs to ping B back, but B it's not in its que. 
         # How comes? 
-        System.newCSCandidate = self.getRandomNode() #self.nodes.G # F? 
+        #System.newCSCandidate = self.getRandomNode() #self.nodes.G # F? E?
         print("the new node: ", System.newCSCandidate.name)
         print("Sending request to => ", System.newCSCandidate.holder.name)
         System.newCSCandidate.push(System.newCSCandidate)
@@ -153,6 +179,7 @@ class System:
           print([x.name for x in self.done])
           print("Finished. Exiting. ")
           exit(0)
+        System.newCSCandidate = self.getRandomNode()
 
     except KeyboardInterrupt:
       exit(0)
