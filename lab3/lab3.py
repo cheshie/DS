@@ -4,6 +4,7 @@ from time import sleep
 from threading import Thread
 from datetime import datetime, timedelta
 from os import system
+from sys import argv
 
 class Site:
   def __init__(self, name, holder=None):
@@ -81,29 +82,25 @@ class System:
   done = []
   nodes = None
 
-  def __init__(self):
-    names = ['A','B','C','D','E','F','G']
-    nodeslist = namedtuple('nodes', names)
-    System.nodes = nodeslist(*[Site(name) for name in names])
+  def __init__(self, nodes):
+    nodes_names = list(set([y for x in nodes for y in x.split('-')]))
+    nodeslist = namedtuple('nodes', nodes_names)
+    System.nodes = nodeslist(*[Site(name) for name in nodes_names])
+    self.setStructure(nodes)
     # Current root is also CS node
     System.currentCS = self.nodes.A
     System.currentCS.workedInCS = True
     # nodes that already finished their CS
     System.done.append(System.currentCS) 
-    self.setStructure()
   #
 
   def getRandomNode(self):
     return choice(list(set(self.nodes) - set(System.done)))
   #
 
-  def setStructure(self):
-    System.nodes.E.setHolder(System.nodes.B)
-    System.nodes.D.setHolder(System.nodes.B)
-    System.nodes.F.setHolder(System.nodes.C)
-    System.nodes.G.setHolder(System.nodes.C)
-    System.nodes.B.setHolder(System.nodes.A)
-    System.nodes.C.setHolder(System.nodes.A)
+  def setStructure(self, nodes):
+    for x,y in [x.split("-") for x in nodes]:
+      getattr(System.nodes, x).setHolder(getattr(System.nodes, y))
   #
 
   @classmethod
@@ -162,8 +159,5 @@ class System:
           f":: Que => {[x.name for x in node.request_q]}")
 #
 
-from sys import argv
-print(argv)
-exit()
-net = System()
+net = System(argv[1:])
 net.animate()
